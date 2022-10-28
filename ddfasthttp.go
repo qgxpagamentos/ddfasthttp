@@ -93,12 +93,13 @@ func StartDDSpan(operationName string, parentSpan tracer.Span, spanType string, 
 	return span
 }
 
-// DeferFinishDDSpan finishes a datadog span.
-func DeferFinishDDSpan(span tracer.Span, result DDTraceResult) func() {
-	return func() {
-		tags, err := result()
-		setSpanTags(span, tags)
-		span.Finish(tracer.WithError(err))
+// EndSpan finishes a datadog span.
+func EndSpan(span tracer.Span, e error) {
+	if span != nil && e != nil {
+		span.Finish(tracer.WithError(e))
+	}
+	if span != nil && e == nil {
+		span.Finish()
 	}
 }
 
@@ -108,31 +109,4 @@ func setSpanTags(span tracer.Span, tags SpanTags) {
 			span.SetTag(k, v)
 		}
 	}
-}
-
-// DDTraceTarget is the func to be traced by datadog.
-type DDTraceTarget func(tracer.Span) (SpanTags, error)
-
-// WithDDTracer traces span info by DataDog.
-func WithDDTracer(operationName string, parentSpan tracer.Span, spanType string, tags SpanTags, f DDTraceTarget) {
-	var (
-		extTags SpanTags
-		err     error
-	)
-	span := StartDDSpan(operationName, parentSpan, spanType, tags)
-	defer DeferFinishDDSpan(span, func() (SpanTags, error) {
-		return extTags, err
-	})()
-
-	extTags, err = f(span)
-}
-
-// DDTraceSimpleTarget is the func to be traced by datadog.
-type DDTraceSimpleTarget func() (SpanTags, error)
-
-// WithSimpleDDTracer traces span info by DataDog.
-func WithSimpleDDTracer(operationName string, tags SpanTags, f DDTraceSimpleTarget) {
-	WithDDTracer(operationName, nil, "", tags, func(tracer.Span) (SpanTags, error) {
-		return f()
-	})
 }
