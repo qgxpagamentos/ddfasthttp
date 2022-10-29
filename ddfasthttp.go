@@ -94,7 +94,33 @@ func StartDDSpan(operationName string, parentSpan tracer.Span, spanType string, 
 }
 
 // EndSpan finishes a datadog span.
-func EndSpan(span tracer.Span, e error) {
+func EndSpan(span tracer.Span) {
+	if span != nil {
+		span.Finish()
+	}
+}
+
+// EndSpanError finishes a datadog span.
+func EndSpanError(span tracer.Span, e error) {
+	if span != nil && e != nil {
+		span.Finish(tracer.WithError(e))
+	}
+	if span != nil && e == nil {
+		span.Finish()
+	}
+}
+
+// EndSpanTags finishes a datadog span.
+func EndSpanTags(span tracer.Span, tags SpanTags) {
+	setSpanTags(span, tags)
+	if span != nil {
+		span.Finish()
+	}
+}
+
+// EndSpanTagsError finishes a datadog span.
+func EndSpanTagsError(span tracer.Span, tags SpanTags, e error) {
+	setSpanTags(span, tags)
 	if span != nil && e != nil {
 		span.Finish(tracer.WithError(e))
 	}
