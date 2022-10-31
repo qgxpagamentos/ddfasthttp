@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"reflect"
 
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttpadaptor"
@@ -95,17 +96,17 @@ func StartDDSpan(operationName string, parentSpan tracer.Span, spanType string, 
 
 // EndSpan finishes a datadog span.
 func EndSpan(span tracer.Span) {
-	if span != nil {
+	if !isNil(span) {
 		span.Finish()
 	}
 }
 
 // EndSpanError finishes a datadog span.
 func EndSpanError(span tracer.Span, e error) {
-	if span != nil && e != nil {
+	if !isNil(span) && e != nil {
 		span.Finish(tracer.WithError(e))
 	}
-	if span != nil && e == nil {
+	if !isNil(span) && e == nil {
 		span.Finish()
 	}
 }
@@ -113,7 +114,7 @@ func EndSpanError(span tracer.Span, e error) {
 // EndSpanTags finishes a datadog span.
 func EndSpanTags(span tracer.Span, tags SpanTags) {
 	setSpanTags(span, tags)
-	if span != nil {
+	if !isNil(span) {
 		span.Finish()
 	}
 }
@@ -121,18 +122,34 @@ func EndSpanTags(span tracer.Span, tags SpanTags) {
 // EndSpanTagsError finishes a datadog span.
 func EndSpanTagsError(span tracer.Span, tags SpanTags, e error) {
 	setSpanTags(span, tags)
-	if span != nil && e != nil {
+	if !isNil(span) && e != nil {
 		span.Finish(tracer.WithError(e))
 	}
-	if span != nil && e == nil {
+	if !isNil(span) && e == nil {
 		span.Finish()
 	}
 }
 
 func setSpanTags(span tracer.Span, tags SpanTags) {
+	if isNil(span) {
+		return
+	}
 	if len(tags) > 0 {
 		for k, v := range tags {
 			span.SetTag(k, v)
 		}
 	}
+}
+
+func isNil(value interface{}) bool {
+	if value == nil {
+		return true
+	}
+	if reflect.ValueOf(value).Kind() == reflect.Ptr && reflect.ValueOf(value).IsNil() {
+		return true
+	}
+	if reflect.ValueOf(value).Kind() == reflect.Invalid {
+		return true
+	}
+	return false
 }
